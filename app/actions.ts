@@ -175,49 +175,38 @@ export async function createEventAction(
   const notes = (formData.get('notes') as string)?.trim()
   const tastingTheme = (formData.get('tastingTheme') as string)?.trim()
   const mainVariable = (formData.get('mainVariable') as string)?.trim()
-  const varietiesRaw = (formData.get('varieties') as string)?.trim()
-  const bottleCount = parseInt(formData.get('bottleCount') as string) || 0
   const attendeeIds = formData.getAll('attendees').map((v) => parseInt(v as string))
 
+  // Per-variety groups: parallel arrays from the form
+  const varieties = formData.getAll('variety') as string[]
+  const terroirs = formData.getAll('terroir') as string[]
+  const vintages = formData.getAll('vintage') as string[]
+  const bottleCounts = formData.getAll('bottleCount') as string[]
+
   if (!name || !scheduledAt) return { error: 'Name and date are required' }
-  if (bottleCount < 1 || bottleCount > 20) return { error: 'Number of bottles must be between 1 and 20' }
 
-  // Auto-generate bottle slots from varieties + bottle count
-  const varieties = varietiesRaw
-    ? varietiesRaw.split(',').map((v) => v.trim()).filter(Boolean)
-    : []
+  // Build slots from each group
+  const generatedSlots: {
+    slotNumber: number
+    category: string
+    terroir: string | null
+    vintage: string | null
+    description: string | null
+  }[] = []
 
-  const generatedSlots: { slotNumber: number; category: string; description: string | null }[] = []
-
-  if (varieties.length === 0) {
-    // No varieties — just numbered slots with theme as description
-    for (let i = 0; i < bottleCount; i++) {
-      generatedSlots.push({
-        slotNumber: i + 1,
-        category: `Bottle ${i + 1}`,
-        description: tastingTheme || null,
-      })
+  let slotNum = 1
+  for (let i = 0; i < varieties.length; i++) {
+    const variety = varieties[i]?.trim()
+    const terroir = terroirs[i]?.trim() || null
+    const vintage = vintages[i]?.trim() || null
+    const count = parseInt(bottleCounts[i]) || 1
+    if (!variety) continue
+    for (let j = 0; j < count; j++) {
+      generatedSlots.push({ slotNumber: slotNum++, category: variety, terroir, vintage, description: null })
     }
-  } else if (varieties.length === 1) {
-    for (let i = 0; i < bottleCount; i++) {
-      generatedSlots.push({
-        slotNumber: i + 1,
-        category: varieties[0],
-        description: null,
-      })
-    }
-  } else {
-    // Distribute bottles evenly across varieties; extras go to the first varieties
-    const base = Math.floor(bottleCount / varieties.length)
-    const extra = bottleCount % varieties.length
-    let slotNum = 1
-    varieties.forEach((variety, vi) => {
-      const count = base + (vi < extra ? 1 : 0)
-      for (let i = 0; i < count; i++) {
-        generatedSlots.push({ slotNumber: slotNum++, category: variety, description: null })
-      }
-    })
   }
+
+  if (generatedSlots.length === 0) return { error: 'Add at least one bottle slot' }
 
   const event = await db.tastingEvent.create({
     data: {
@@ -236,7 +225,15 @@ export async function createEventAction(
             .map((userId) => ({ userId })),
         ],
       },
-      bottleSlots: { create: generatedSlots },
+      bottleSlots: {
+        create: generatedSlots.map((s) => ({
+          slotNumber: s.slotNumber,
+          category: s.category,
+          terroir: s.terroir,
+          vintage: s.vintage,
+          description: s.description,
+        })),
+      },
     },
   })
 

@@ -146,6 +146,8 @@ export default async function EventDetailPage({ params }: PageProps) {
                 slotId={slot.id}
                 slotNumber={slot.slotNumber}
                 category={slot.category}
+                terroir={slot.terroir}
+                vintage={slot.vintage}
                 description={slot.description}
                 signedUpBy={slot.signedUpBy}
                 signedUpName={slot.assignedUser?.name ?? null}

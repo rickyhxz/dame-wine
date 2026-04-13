@@ -71,7 +71,9 @@ model EventBottleSlot {
   id          Int     @id @default(autoincrement())
   eventId     Int
   slotNumber  Int
-  category    String  // e.g. "Old World Pinot Noir, Burgundy preferred"
+  category    String  // grape variety
+  terroir     String? // region / country e.g. "Burgundy, France"
+  vintage     String? // year or range e.g. "2018–2020"
   description String?
   signedUpBy  Int?    // userId who claimed this slot
   wineName    String? // what wine they said they're bringing

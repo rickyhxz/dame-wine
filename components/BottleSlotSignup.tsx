@@ -7,6 +7,8 @@ interface Props {
   slotId: number
   slotNumber: number
   category: string
+  terroir: string | null
+  vintage: string | null
   description: string | null
   signedUpBy: number | null
   signedUpName: string | null
@@ -61,6 +63,8 @@ export function BottleSlotSignup({
   slotId,
   slotNumber,
   category,
+  terroir,
+  vintage,
   description,
   signedUpBy,
   signedUpName,
@@ -83,7 +87,19 @@ export function BottleSlotSignup({
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-brown">{category}</p>
-        {description && <p className="text-xs text-muted mt-0.5">{description}</p>}
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+          {terroir && (
+            <span className="text-xs text-muted">
+              <span className="font-medium text-brown/60">Terroir</span> {terroir}
+            </span>
+          )}
+          {vintage && (
+            <span className="text-xs text-muted">
+              <span className="font-medium text-brown/60">Vintage</span> {vintage}
+            </span>
+          )}
+          {description && <span className="text-xs text-muted">{description}</span>}
+        </div>
 
         {isClaimed ? (
           <div className="mt-1">

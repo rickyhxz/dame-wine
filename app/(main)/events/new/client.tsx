@@ -1,13 +1,37 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createEventAction } from '@/app/actions'
 
 interface User { id: number; name: string }
 
+interface VarietyGroup {
+  variety: string
+  terroir: string
+  vintage: string
+  bottles: string
+}
+
+const emptyGroup = (): VarietyGroup => ({ variety: '', terroir: '', vintage: '', bottles: '1' })
+
 export default function NewEventClient({ users }: { users: User[] }) {
   const [state, action, pending] = useActionState(createEventAction, null)
+  const [groups, setGroups] = useState<VarietyGroup[]>([emptyGroup()])
+
+  function addGroup() {
+    setGroups((prev) => [...prev, emptyGroup()])
+  }
+
+  function removeGroup(i: number) {
+    setGroups((prev) => prev.filter((_, idx) => idx !== i))
+  }
+
+  function updateGroup(i: number, field: keyof VarietyGroup, value: string) {
+    setGroups((prev) => prev.map((g, idx) => (idx === i ? { ...g, [field]: value } : g)))
+  }
+
+  const totalBottles = groups.reduce((sum, g) => sum + (parseInt(g.bottles) || 0), 0)
 
   return (
     <div className="max-w-xl">
@@ -86,35 +110,81 @@ export default function NewEventClient({ users }: { users: User[] }) {
                 className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-brown mb-1">
-                Grape Varieties
-              </label>
-              <input
-                name="varieties"
-                type="text"
-                placeholder="e.g. Pinot Noir, Chardonnay (comma-separated)"
-                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
-              />
-              <p className="text-xs text-muted mt-1">
-                Bottles will be distributed evenly across varieties.
-              </p>
+          {/* Variety groups */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <label className="block text-sm font-medium text-brown">Bottle Slots</label>
+                <p className="text-xs text-muted mt-0.5">
+                  {totalBottles} bottle{totalBottles !== 1 ? 's' : ''} total — each slot gets a variety, terroir, and vintage so people know exactly what to buy.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addGroup}
+                className="text-xs text-wine hover:underline font-medium shrink-0 ml-3"
+              >
+                + Add Row
+              </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-brown mb-1">
-                Number of Bottles <span className="text-wine">*</span>
-              </label>
-              <input
-                name="bottleCount"
-                type="number"
-                min="1"
-                max="20"
-                required
-                placeholder="6"
-                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
-              />
+            <div className="space-y-3">
+              {groups.map((g, i) => (
+                <div key={i} className="rounded-lg border border-border bg-white p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-wine text-white text-xs flex items-center justify-center font-bold shrink-0">
+                      {i + 1}
+                    </span>
+                    <input
+                      name="variety"
+                      value={g.variety}
+                      onChange={(e) => updateGroup(i, 'variety', e.target.value)}
+                      placeholder="Grape variety (e.g. Pinot Noir)"
+                      className="flex-1 rounded-md border border-border px-3 py-1.5 text-sm text-brown bg-cream focus:outline-none focus:ring-2 focus:ring-wine/30"
+                    />
+                    {groups.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeGroup(i)}
+                        className="text-muted hover:text-red-500 text-lg leading-none shrink-0"
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 pl-8">
+                    <input
+                      name="terroir"
+                      value={g.terroir}
+                      onChange={(e) => updateGroup(i, 'terroir', e.target.value)}
+                      placeholder="Terroir (e.g. Burgundy)"
+                      className="rounded-md border border-border px-3 py-1.5 text-sm text-brown bg-cream focus:outline-none focus:ring-2 focus:ring-wine/30"
+                    />
+                    <input
+                      name="vintage"
+                      value={g.vintage}
+                      onChange={(e) => updateGroup(i, 'vintage', e.target.value)}
+                      placeholder="Vintage (e.g. 2018)"
+                      className="rounded-md border border-border px-3 py-1.5 text-sm text-brown bg-cream focus:outline-none focus:ring-2 focus:ring-wine/30"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        name="bottleCount"
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={g.bottles}
+                        onChange={(e) => updateGroup(i, 'bottles', e.target.value)}
+                        className="w-full rounded-md border border-border px-3 py-1.5 text-sm text-brown bg-cream focus:outline-none focus:ring-2 focus:ring-wine/30"
+                      />
+                      <span className="text-xs text-muted shrink-0">btl</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -148,7 +218,7 @@ export default function NewEventClient({ users }: { users: User[] }) {
             disabled={pending}
             className="w-full bg-wine text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-wine-dark transition-colors disabled:opacity-60"
           >
-            {pending ? 'Creating…' : 'Create Event'}
+            {pending ? 'Creating…' : `Create Event · ${totalBottles} bottle${totalBottles !== 1 ? 's' : ''}`}
           </button>
         </form>
       </div>

@@ -10,7 +10,7 @@ if (!url) throw new Error('TURSO_DATABASE_URL is not set')
 const client = createClient({ url, authToken })
 
 const sql = readFileSync(
-  join(process.cwd(), 'prisma/migrations/20260413173914_add_bug_reports_and_bottle_slots/migration.sql'),
+  join(process.cwd(), 'prisma/migrations/20260413191256_add_slot_terroir_vintage/migration.sql'),
   'utf8'
 )
 
