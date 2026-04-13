@@ -1,9 +1,11 @@
 import { PrismaClient } from '../app/generated/prisma/client'
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
-import path from 'path'
+import { PrismaLibSql } from '@prisma/adapter-libsql'
 
-const dbPath = path.join(process.cwd(), 'dev.db')
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` })
+const url = process.env.TURSO_DATABASE_URL
+const authToken = process.env.TURSO_AUTH_TOKEN
+if (!url) throw new Error('TURSO_DATABASE_URL is not set')
+
+const adapter = new PrismaLibSql({ url, authToken })
 const db = new PrismaClient({ adapter })
 
 const wines = [

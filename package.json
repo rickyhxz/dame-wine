@@ -12,7 +12,9 @@
     "db:reset": "prisma migrate reset --force && npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.2",
     "@prisma/adapter-better-sqlite3": "^7.7.0",
+    "@prisma/adapter-libsql": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
