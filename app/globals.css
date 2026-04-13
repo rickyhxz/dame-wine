@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-wine: #722f37;
+  --color-wine-dark: #4a1a20;
+  --color-wine-light: #a0404c;
+  --color-gold: #c8a96e;
+  --color-cream: #faf7f2;
+  --color-brown: #2c1810;
+  --color-muted: #8b6f6f;
+  --color-card: #ffffff;
+  --color-border: #e8ddd8;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-brown);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.wine-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wine-badge-RED { background: #8b1a2a; color: white; }
+.wine-badge-WHITE { background: #d4b44a; color: #2c1810; }
+.wine-badge-ROSE { background: #e8a0b0; color: #4a1020; }
+.wine-badge-SPARKLING { background: #4a7a9b; color: white; }
+.wine-badge-DESSERT { background: #9b6a2a; color: white; }
+.wine-badge-FORTIFIED { background: #6a3a8b; color: white; }
+
+.star { color: #d4b44a; }
+.star-empty { color: #d0c0b8; }

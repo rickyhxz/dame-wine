@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  tastings     Tasting[]
+}
+
+model Wine {
+  id          Int       @id @default(autoincrement())
+  name        String
+  variety     String
+  type        String    // RED | WHITE | ROSE | SPARKLING | DESSERT | FORTIFIED
+  region      String
+  country     String
+  year        Int?
+  description String?
+  createdBy   Int?
+  createdAt   DateTime  @default(now())
+  tastings    Tasting[]
+}
+
+model Tasting {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  wineId    Int
+  status    String    @default("WISHLIST") // WISHLIST | TASTED
+  rating    Int?
+  comment   String?
+  tastedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  wine Wine @relation(fields: [wineId], references: [id])
+
+  @@unique([userId, wineId])
+}
