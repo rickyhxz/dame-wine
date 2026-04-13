@@ -23,7 +23,7 @@ export async function loginAction(
   }
 
   await createSession({ userId: user.id, name: user.name })
-  redirect('/wines')
+  redirect('/home')
 }
 
 export async function registerAction(
@@ -44,7 +44,7 @@ export async function registerAction(
   const user = await db.user.create({ data: { name, passwordHash } })
 
   await createSession({ userId: user.id, name: user.name })
-  redirect('/wines')
+  redirect('/home')
 }
 
 export async function logoutAction() {
@@ -105,6 +105,7 @@ export async function addToWishlistAction(wineId: number) {
   revalidatePath('/wines')
   revalidatePath(`/wines/${wineId}`)
   revalidatePath('/my-list')
+  revalidatePath('/home')
 }
 
 export async function markTastedAction(
@@ -141,6 +142,7 @@ export async function markTastedAction(
   revalidatePath('/wines')
   revalidatePath(`/wines/${wineId}`)
   revalidatePath('/my-list')
+  revalidatePath('/home')
   return null
 }
 
@@ -155,4 +157,60 @@ export async function removeTastingAction(wineId: number) {
   revalidatePath('/wines')
   revalidatePath(`/wines/${wineId}`)
   revalidatePath('/my-list')
+  revalidatePath('/home')
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+
+export async function createEventAction(
+  _prevState: { error: string } | null,
+  formData: FormData
+): Promise<{ error: string } | null> {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  const name = (formData.get('name') as string)?.trim()
+  const location = (formData.get('location') as string)?.trim()
+  const scheduledAt = formData.get('scheduledAt') as string
+  const notes = (formData.get('notes') as string)?.trim()
+  const attendeeIds = formData.getAll('attendees').map((v) => parseInt(v as string))
+  const wineIds = formData.getAll('wines').map((v) => parseInt(v as string))
+
+  if (!name || !scheduledAt) return { error: 'Name and date are required' }
+
+  const event = await db.tastingEvent.create({
+    data: {
+      name,
+      location: location || null,
+      scheduledAt: new Date(scheduledAt),
+      notes: notes || null,
+      createdBy: session.userId,
+      attendees: {
+        create: [
+          { userId: session.userId },
+          ...attendeeIds
+            .filter((id) => id !== session.userId)
+            .map((userId) => ({ userId })),
+        ],
+      },
+      wines: {
+        create: wineIds.map((wineId) => ({ wineId })),
+      },
+    },
+  })
+
+  revalidatePath('/events')
+  redirect(`/events/${event.id}`)
+}
+
+export async function deleteEventAction(eventId: number) {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  const event = await db.tastingEvent.findUnique({ where: { id: eventId } })
+  if (!event || event.createdBy !== session.userId) return
+
+  await db.tastingEvent.delete({ where: { id: eventId } })
+  revalidatePath('/events')
+  redirect('/events')
 }

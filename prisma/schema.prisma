@@ -8,25 +8,28 @@ datasource db {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  name         String    @unique
+  id           Int             @id @default(autoincrement())
+  name         String          @unique
   passwordHash String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime        @default(now())
   tastings     Tasting[]
+  eventsCreated TastingEvent[] @relation("EventCreator")
+  eventAttendances EventAttendee[]
 }
 
 model Wine {
-  id          Int       @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   name        String
   variety     String
-  type        String    // RED | WHITE | ROSE | SPARKLING | DESSERT | FORTIFIED
+  type        String       // RED | WHITE | ROSE | SPARKLING | DESSERT | FORTIFIED
   region      String
   country     String
   year        Int?
   description String?
   createdBy   Int?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime     @default(now())
   tastings    Tasting[]
+  eventWines  EventWine[]
 }
 
 model Tasting {
@@ -43,4 +46,38 @@ model Tasting {
   wine Wine @relation(fields: [wineId], references: [id])
 
   @@unique([userId, wineId])
+}
+
+model TastingEvent {
+  id          Int       @id @default(autoincrement())
+  name        String
+  location    String?
+  scheduledAt DateTime
+  notes       String?
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+
+  creator   User            @relation("EventCreator", fields: [createdBy], references: [id])
+  attendees EventAttendee[]
+  wines     EventWine[]
+}
+
+model EventAttendee {
+  eventId Int
+  userId  Int
+
+  event TastingEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User         @relation(fields: [userId], references: [id])
+
+  @@id([eventId, userId])
+}
+
+model EventWine {
+  eventId Int
+  wineId  Int
+
+  event TastingEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  wine  Wine         @relation(fields: [wineId], references: [id])
+
+  @@id([eventId, wineId])
 }
