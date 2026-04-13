@@ -175,13 +175,49 @@ export async function createEventAction(
   const notes = (formData.get('notes') as string)?.trim()
   const tastingTheme = (formData.get('tastingTheme') as string)?.trim()
   const mainVariable = (formData.get('mainVariable') as string)?.trim()
+  const varietiesRaw = (formData.get('varieties') as string)?.trim()
+  const bottleCount = parseInt(formData.get('bottleCount') as string) || 0
   const attendeeIds = formData.getAll('attendees').map((v) => parseInt(v as string))
 
-  // Bottle slots: parallel arrays of category + description
-  const slotCategories = formData.getAll('slotCategory') as string[]
-  const slotDescriptions = formData.getAll('slotDescription') as string[]
-
   if (!name || !scheduledAt) return { error: 'Name and date are required' }
+  if (bottleCount < 1 || bottleCount > 20) return { error: 'Number of bottles must be between 1 and 20' }
+
+  // Auto-generate bottle slots from varieties + bottle count
+  const varieties = varietiesRaw
+    ? varietiesRaw.split(',').map((v) => v.trim()).filter(Boolean)
+    : []
+
+  const generatedSlots: { slotNumber: number; category: string; description: string | null }[] = []
+
+  if (varieties.length === 0) {
+    // No varieties — just numbered slots with theme as description
+    for (let i = 0; i < bottleCount; i++) {
+      generatedSlots.push({
+        slotNumber: i + 1,
+        category: `Bottle ${i + 1}`,
+        description: tastingTheme || null,
+      })
+    }
+  } else if (varieties.length === 1) {
+    for (let i = 0; i < bottleCount; i++) {
+      generatedSlots.push({
+        slotNumber: i + 1,
+        category: varieties[0],
+        description: null,
+      })
+    }
+  } else {
+    // Distribute bottles evenly across varieties; extras go to the first varieties
+    const base = Math.floor(bottleCount / varieties.length)
+    const extra = bottleCount % varieties.length
+    let slotNum = 1
+    varieties.forEach((variety, vi) => {
+      const count = base + (vi < extra ? 1 : 0)
+      for (let i = 0; i < count; i++) {
+        generatedSlots.push({ slotNumber: slotNum++, category: variety, description: null })
+      }
+    })
+  }
 
   const event = await db.tastingEvent.create({
     data: {
@@ -200,15 +236,7 @@ export async function createEventAction(
             .map((userId) => ({ userId })),
         ],
       },
-      bottleSlots: {
-        create: slotCategories
-          .map((category, i) => ({
-            slotNumber: i + 1,
-            category: category.trim(),
-            description: (slotDescriptions[i] ?? '').trim() || null,
-          }))
-          .filter((s) => s.category.length > 0),
-      },
+      bottleSlots: { create: generatedSlots },
     },
   })
 

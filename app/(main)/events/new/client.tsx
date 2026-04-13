@@ -1,28 +1,13 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState } from 'react'
 import Link from 'next/link'
 import { createEventAction } from '@/app/actions'
 
 interface User { id: number; name: string }
 
-interface Slot { category: string; description: string }
-
 export default function NewEventClient({ users }: { users: User[] }) {
   const [state, action, pending] = useActionState(createEventAction, null)
-  const [slots, setSlots] = useState<Slot[]>([{ category: '', description: '' }])
-
-  function addSlot() {
-    setSlots((prev) => [...prev, { category: '', description: '' }])
-  }
-
-  function removeSlot(i: number) {
-    setSlots((prev) => prev.filter((_, idx) => idx !== i))
-  }
-
-  function updateSlot(i: number, field: keyof Slot, value: string) {
-    setSlots((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)))
-  }
 
   return (
     <div className="max-w-xl">
@@ -78,78 +63,58 @@ export default function NewEventClient({ users }: { users: User[] }) {
             </div>
           </div>
 
-          {/* Tasting theme */}
-          <div>
-            <label className="block text-sm font-medium text-brown mb-1">Tasting Theme</label>
-            <input
-              name="tastingTheme"
-              type="text"
-              placeholder="e.g. Old World vs New World Pinot Noir"
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-cream focus:outline-none focus:ring-2 focus:ring-wine/30"
-            />
-          </div>
+          {/* Tasting design */}
+          <div className="rounded-lg border border-border bg-cream/50 p-4 space-y-4">
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Tasting Design</p>
 
-          <div>
-            <label className="block text-sm font-medium text-brown mb-1">Main Variable</label>
-            <input
-              name="mainVariable"
-              type="text"
-              placeholder="e.g. terroir, vintage, producer"
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-cream focus:outline-none focus:ring-2 focus:ring-wine/30"
-            />
-          </div>
-
-          {/* Bottle slots */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-brown">
-                Bottle Slots
-              </label>
-              <button
-                type="button"
-                onClick={addSlot}
-                className="text-xs text-wine hover:underline font-medium"
-              >
-                + Add Slot
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-brown mb-1">Theme</label>
+              <input
+                name="tastingTheme"
+                type="text"
+                placeholder="e.g. Old World vs New World Pinot Noir"
+                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
+              />
             </div>
-            <p className="text-xs text-muted mb-3">
-              Describe what each bottle should be — friends will sign up to bring them.
-            </p>
-            <div className="space-y-3">
-              {slots.map((slot, i) => (
-                <div key={i} className="rounded-lg border border-border bg-cream p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-6 h-6 rounded-full bg-wine text-white text-xs flex items-center justify-center font-bold shrink-0">
-                      {i + 1}
-                    </span>
-                    <input
-                      name="slotCategory"
-                      value={slot.category}
-                      onChange={(e) => updateSlot(i, 'category', e.target.value)}
-                      placeholder="Category (e.g. Burgundy Pinot Noir, 2018+)"
-                      className="flex-1 rounded-md border border-border px-3 py-1.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
-                    />
-                    {slots.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeSlot(i)}
-                        className="text-muted hover:text-red-500 text-lg leading-none shrink-0"
-                        title="Remove slot"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    name="slotDescription"
-                    value={slot.description}
-                    onChange={(e) => updateSlot(i, 'description', e.target.value)}
-                    placeholder="Extra notes for this slot (optional)"
-                    className="w-full rounded-md border border-border px-3 py-1.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
-                  />
-                </div>
-              ))}
+
+            <div>
+              <label className="block text-sm font-medium text-brown mb-1">Main Variable</label>
+              <input
+                name="mainVariable"
+                type="text"
+                placeholder="e.g. terroir, vintage, producer"
+                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-brown mb-1">
+                Grape Varieties
+              </label>
+              <input
+                name="varieties"
+                type="text"
+                placeholder="e.g. Pinot Noir, Chardonnay (comma-separated)"
+                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
+              />
+              <p className="text-xs text-muted mt-1">
+                Bottles will be distributed evenly across varieties.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-brown mb-1">
+                Number of Bottles <span className="text-wine">*</span>
+              </label>
+              <input
+                name="bottleCount"
+                type="number"
+                min="1"
+                max="20"
+                required
+                placeholder="6"
+                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-white focus:outline-none focus:ring-2 focus:ring-wine/30"
+              />
             </div>
           </div>
 
