@@ -15,6 +15,8 @@ model User {
   tastings     Tasting[]
   eventsCreated TastingEvent[] @relation("EventCreator")
   eventAttendances EventAttendee[]
+  bugReports   BugReport[]
+  bottleSlots  EventBottleSlot[]
 }
 
 model Wine {
@@ -49,17 +51,47 @@ model Tasting {
 }
 
 model TastingEvent {
-  id          Int       @id @default(autoincrement())
-  name        String
-  location    String?
-  scheduledAt DateTime
-  notes       String?
-  createdBy   Int
-  createdAt   DateTime  @default(now())
+  id             Int       @id @default(autoincrement())
+  name           String
+  location       String?
+  scheduledAt    DateTime
+  notes          String?
+  tastingTheme   String?   // e.g. "Old World vs New World Pinot Noir"
+  mainVariable   String?   // e.g. "terroir", "vintage", "producer"
+  createdBy      Int
+  createdAt      DateTime  @default(now())
 
-  creator   User            @relation("EventCreator", fields: [createdBy], references: [id])
-  attendees EventAttendee[]
-  wines     EventWine[]
+  creator     User              @relation("EventCreator", fields: [createdBy], references: [id])
+  attendees   EventAttendee[]
+  wines       EventWine[]
+  bottleSlots EventBottleSlot[]
+}
+
+model EventBottleSlot {
+  id          Int     @id @default(autoincrement())
+  eventId     Int
+  slotNumber  Int
+  category    String  // e.g. "Old World Pinot Noir, Burgundy preferred"
+  description String?
+  signedUpBy  Int?    // userId who claimed this slot
+  wineName    String? // what wine they said they're bringing
+
+  event       TastingEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assignedUser User?       @relation(fields: [signedUpBy], references: [id])
+
+  @@unique([eventId, slotNumber])
+}
+
+model BugReport {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  description String
+  urgency     String    // LOW | MEDIUM | HIGH
+  status      String    @default("OPEN") // OPEN | FIXED
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model EventAttendee {

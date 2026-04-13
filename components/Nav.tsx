@@ -22,6 +22,9 @@ export function Nav({ userName }: { userName: string }) {
           <Link href="/events" className="text-white/80 hover:text-white transition-colors font-medium">
             Events
           </Link>
+          <Link href="/bugs" className="text-white/80 hover:text-white transition-colors font-medium">
+            Bugs
+          </Link>
           <Link href="/wines/add" className="text-white/80 hover:text-white transition-colors font-medium">
             + Add
           </Link>

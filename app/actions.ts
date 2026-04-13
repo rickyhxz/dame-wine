@@ -173,8 +173,13 @@ export async function createEventAction(
   const location = (formData.get('location') as string)?.trim()
   const scheduledAt = formData.get('scheduledAt') as string
   const notes = (formData.get('notes') as string)?.trim()
+  const tastingTheme = (formData.get('tastingTheme') as string)?.trim()
+  const mainVariable = (formData.get('mainVariable') as string)?.trim()
   const attendeeIds = formData.getAll('attendees').map((v) => parseInt(v as string))
-  const wineIds = formData.getAll('wines').map((v) => parseInt(v as string))
+
+  // Bottle slots: parallel arrays of category + description
+  const slotCategories = formData.getAll('slotCategory') as string[]
+  const slotDescriptions = formData.getAll('slotDescription') as string[]
 
   if (!name || !scheduledAt) return { error: 'Name and date are required' }
 
@@ -184,6 +189,8 @@ export async function createEventAction(
       location: location || null,
       scheduledAt: new Date(scheduledAt),
       notes: notes || null,
+      tastingTheme: tastingTheme || null,
+      mainVariable: mainVariable || null,
       createdBy: session.userId,
       attendees: {
         create: [
@@ -193,14 +200,108 @@ export async function createEventAction(
             .map((userId) => ({ userId })),
         ],
       },
-      wines: {
-        create: wineIds.map((wineId) => ({ wineId })),
+      bottleSlots: {
+        create: slotCategories
+          .map((category, i) => ({
+            slotNumber: i + 1,
+            category: category.trim(),
+            description: (slotDescriptions[i] ?? '').trim() || null,
+          }))
+          .filter((s) => s.category.length > 0),
       },
     },
   })
 
   revalidatePath('/events')
   redirect(`/events/${event.id}`)
+}
+
+export async function claimBottleSlotAction(
+  slotId: number,
+  wineName: string
+): Promise<{ error: string } | null> {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  const slot = await db.eventBottleSlot.findUnique({ where: { id: slotId } })
+  if (!slot) return { error: 'Slot not found' }
+  if (slot.signedUpBy !== null && slot.signedUpBy !== session.userId) {
+    return { error: 'This slot is already claimed by someone else' }
+  }
+
+  await db.eventBottleSlot.update({
+    where: { id: slotId },
+    data: { signedUpBy: session.userId, wineName: wineName.trim() || null },
+  })
+
+  revalidatePath(`/events/${slot.eventId}`)
+  return null
+}
+
+export async function unclaimBottleSlotAction(slotId: number): Promise<{ error: string } | null> {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  const slot = await db.eventBottleSlot.findUnique({ where: { id: slotId } })
+  if (!slot) return { error: 'Slot not found' }
+  if (slot.signedUpBy !== session.userId) return { error: 'You did not claim this slot' }
+
+  await db.eventBottleSlot.update({
+    where: { id: slotId },
+    data: { signedUpBy: null, wineName: null },
+  })
+
+  revalidatePath(`/events/${slot.eventId}`)
+  return null
+}
+
+// ─── Bug Reports ──────────────────────────────────────────────────────────────
+
+export async function createBugReportAction(
+  _prevState: { error: string } | null,
+  formData: FormData
+): Promise<{ error: string } | null> {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
+  const description = (formData.get('description') as string)?.trim()
+  const urgency = formData.get('urgency') as string
+
+  if (!description) return { error: 'Please describe the bug' }
+  if (!['LOW', 'MEDIUM', 'HIGH'].includes(urgency)) return { error: 'Please select an urgency level' }
+
+  await db.bugReport.create({
+    data: { userId: session.userId, description, urgency },
+  })
+
+  revalidatePath('/bugs')
+  redirect('/bugs')
+}
+
+export async function resolveBugAction(bugId: number): Promise<void> {
+  const session = await getSession()
+  if (!session) redirect('/login')
+  if (session.name !== 'Ricky') return
+
+  await db.bugReport.update({
+    where: { id: bugId },
+    data: { status: 'FIXED', resolvedAt: new Date() },
+  })
+
+  revalidatePath('/bugs')
+}
+
+export async function reopenBugAction(bugId: number): Promise<void> {
+  const session = await getSession()
+  if (!session) redirect('/login')
+  if (session.name !== 'Ricky') return
+
+  await db.bugReport.update({
+    where: { id: bugId },
+    data: { status: 'OPEN', resolvedAt: null },
+  })
+
+  revalidatePath('/bugs')
 }
 
 export async function deleteEventAction(eventId: number) {

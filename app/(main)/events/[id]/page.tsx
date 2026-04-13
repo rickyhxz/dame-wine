@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { TastingActions } from '@/components/TastingActions'
+import { BottleSlotSignup } from '@/components/BottleSlotSignup'
 import { deleteEventAction } from '@/app/actions'
 
 function Stars({ rating }: { rating: number }) {
@@ -42,6 +43,10 @@ export default async function EventDetailPage({ params }: PageProps) {
           },
         },
       },
+      bottleSlots: {
+        include: { assignedUser: true },
+        orderBy: { slotNumber: 'asc' },
+      },
     },
   })
 
@@ -55,7 +60,6 @@ export default async function EventDetailPage({ params }: PageProps) {
     ])
   )
 
-  // Only attendee tastings (not mine) with comments
   const attendeeIds = new Set(event.attendees.map((a) => a.userId))
 
   return (
@@ -93,6 +97,24 @@ export default async function EventDetailPage({ params }: PageProps) {
           )}
         </div>
 
+        {/* Theme / variable */}
+        {(event.tastingTheme || event.mainVariable) && (
+          <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-4">
+            {event.tastingTheme && (
+              <div>
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-0.5">Theme</p>
+                <p className="text-sm text-brown">{event.tastingTheme}</p>
+              </div>
+            )}
+            {event.mainVariable && (
+              <div>
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-0.5">Main Variable</p>
+                <p className="text-sm text-brown">{event.mainVariable}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {event.notes && (
           <p className="text-sm text-brown mt-4 pt-4 border-t border-border italic">
             {event.notes}
@@ -123,8 +145,32 @@ export default async function EventDetailPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Bottle signup sheet */}
+      {event.bottleSlots.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
+            Bottle Sign-Up Sheet ({event.bottleSlots.filter((s) => s.signedUpBy !== null).length}/{event.bottleSlots.length} claimed)
+          </h2>
+          <div className="bg-card rounded-xl border border-border divide-y divide-border px-5">
+            {event.bottleSlots.map((slot) => (
+              <BottleSlotSignup
+                key={slot.id}
+                slotId={slot.id}
+                slotNumber={slot.slotNumber}
+                category={slot.category}
+                description={slot.description}
+                signedUpBy={slot.signedUpBy}
+                signedUpName={slot.assignedUser?.name ?? null}
+                wineName={slot.wineName}
+                currentUserId={session!.userId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Wines with cross-user tasting notes */}
-      {event.wines.length > 0 ? (
+      {event.wines.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
             Wines on the Menu ({event.wines.length})
@@ -132,16 +178,12 @@ export default async function EventDetailPage({ params }: PageProps) {
           <div className="space-y-4">
             {event.wines.map(({ wine }) => {
               const myTasting = myTastingMap.get(wine.id)
-              // Notes from all attendees (including me)
               const attendeeTastings = wine.tastings.filter(
                 (t) => attendeeIds.has(t.userId) && t.status === 'TASTED'
               )
-              const myNote = wine.tastings.find((t) => t.userId === session!.userId)
-              const otherNotes = attendeeTastings.filter((t) => t.userId !== session!.userId)
 
               return (
                 <div key={wine.id} className="bg-card rounded-xl border border-border overflow-hidden">
-                  {/* Wine header */}
                   <div className="px-5 pt-5 pb-4">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <Link
@@ -158,7 +200,6 @@ export default async function EventDetailPage({ params }: PageProps) {
                     </p>
                   </div>
 
-                  {/* All attendees' notes */}
                   {attendeeTastings.length > 0 && (
                     <div className="border-t border-border">
                       <p className="text-xs font-semibold text-muted uppercase tracking-wide px-5 py-2">
@@ -192,7 +233,6 @@ export default async function EventDetailPage({ params }: PageProps) {
                     </div>
                   )}
 
-                  {/* My tasting action */}
                   <div className="border-t border-border px-5 py-4 bg-cream/50">
                     <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
                       Your Tasting
@@ -210,10 +250,6 @@ export default async function EventDetailPage({ params }: PageProps) {
               )
             })}
           </div>
-        </div>
-      ) : (
-        <div className="bg-card rounded-xl border border-border p-8 text-center text-muted text-sm">
-          No wines added to this event yet.
         </div>
       )}
     </div>
