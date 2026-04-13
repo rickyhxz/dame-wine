@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
+import { put } from '@vercel/blob'
 import { db } from '@/lib/db'
 import { createSession, deleteSession, getSession } from '@/lib/auth'
 
@@ -68,9 +69,26 @@ export async function addWineAction(
   const country = (formData.get('country') as string)?.trim()
   const yearStr = formData.get('year') as string
   const description = (formData.get('description') as string)?.trim()
+  const labelImage = formData.get('labelImage') as File | null
 
   if (!name || !variety || !type || !region || !country) {
     return { error: 'Please fill in all required fields' }
+  }
+
+  // Upload label image to Vercel Blob if provided
+  let labelImageUrl: string | null = null
+  if (labelImage && labelImage.size > 0) {
+    if (!labelImage.type.startsWith('image/')) {
+      return { error: 'Label image must be an image file (JPG, PNG, WebP, etc.)' }
+    }
+    if (labelImage.size > 5 * 1024 * 1024) {
+      return { error: 'Label image must be under 5 MB' }
+    }
+    const ext = labelImage.name.split('.').pop() ?? 'jpg'
+    const blob = await put(`wine-labels/${Date.now()}-${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${ext}`, labelImage, {
+      access: 'public',
+    })
+    labelImageUrl = blob.url
   }
 
   const wine = await db.wine.create({
@@ -82,6 +100,7 @@ export async function addWineAction(
       country,
       year: yearStr ? parseInt(yearStr) : null,
       description: description || null,
+      labelImageUrl,
       createdBy: session.userId,
     },
   })

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { db } from '@/lib/db'
@@ -71,34 +72,49 @@ async function WineList({ searchParams }: PageProps) {
 
         return (
           <div key={wine.id} className="bg-card rounded-xl border border-border p-5 flex flex-col gap-4">
-            <div className="flex-1">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <Link
-                  href={`/wines/${wine.id}`}
-                  className="font-semibold text-brown hover:text-wine transition-colors leading-tight"
-                >
-                  {wine.name}
+            <div className="flex-1 flex gap-3">
+              {/* Label thumbnail */}
+              {wine.labelImageUrl && (
+                <Link href={`/wines/${wine.id}`} className="shrink-0">
+                  <Image
+                    src={wine.labelImageUrl}
+                    alt={`${wine.name} label`}
+                    width={56}
+                    height={72}
+                    className="w-14 h-[4.5rem] object-cover rounded-md border border-border shadow-sm"
+                  />
                 </Link>
-                <TypeBadge type={wine.type} />
-              </div>
+              )}
 
-              <p className="text-sm text-muted">{wine.variety}</p>
-              <p className="text-xs text-muted mt-0.5">
-                {wine.region}, {wine.country}
-                {wine.year ? ` · ${wine.year}` : ''}
-              </p>
-
-              {myTasting?.status === 'TASTED' && myTasting.rating && (
-                <div className="mt-2">
-                  <Stars rating={myTasting.rating} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <Link
+                    href={`/wines/${wine.id}`}
+                    className="font-semibold text-brown hover:text-wine transition-colors leading-tight"
+                  >
+                    {wine.name}
+                  </Link>
+                  <TypeBadge type={wine.type} />
                 </div>
-              )}
 
-              {friendCount > 0 && (
-                <p className="text-xs text-muted mt-1.5">
-                  {friendCount} friend{friendCount > 1 ? 's' : ''} tasted this
+                <p className="text-sm text-muted">{wine.variety}</p>
+                <p className="text-xs text-muted mt-0.5">
+                  {wine.region}, {wine.country}
+                  {wine.year ? ` · ${wine.year}` : ''}
                 </p>
-              )}
+
+                {myTasting?.status === 'TASTED' && myTasting.rating && (
+                  <div className="mt-2">
+                    <Stars rating={myTasting.rating} />
+                  </div>
+                )}
+
+                {friendCount > 0 && (
+                  <p className="text-xs text-muted mt-1.5">
+                    {friendCount} friend{friendCount > 1 ? 's' : ''} tasted this
+                  </p>
+                )}
+              </div>
             </div>
 
             <TastingActions

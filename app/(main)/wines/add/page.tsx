@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { addWineAction } from '@/app/actions'
 
@@ -25,6 +26,14 @@ const VARIETIES = [
 
 export default function AddWinePage() {
   const [state, action, pending] = useActionState(addWineAction, null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) { setPreview(null); return }
+    setPreview(URL.createObjectURL(file))
+  }
 
   return (
     <div className="max-w-xl">
@@ -139,6 +148,51 @@ export default function AddWinePage() {
               placeholder="Appearance, nose, palate, finish…"
               className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-brown bg-cream focus:outline-none focus:ring-2 focus:ring-wine/30 resize-none"
             />
+          </div>
+
+          {/* Label image upload */}
+          <div>
+            <label className="block text-sm font-medium text-brown mb-1">Label Image</label>
+            <div className="flex items-start gap-4">
+              {/* Preview */}
+              <div
+                className="w-24 h-32 rounded-lg border-2 border-dashed border-border bg-cream flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:border-wine/40 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {preview ? (
+                  <Image src={preview} alt="Label preview" width={96} height={128} className="w-full h-full object-cover" unoptimized />
+                ) : (
+                  <span className="text-xs text-muted text-center px-2">Click to upload</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <input
+                  ref={fileInputRef}
+                  name="labelImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-sm text-wine hover:underline font-medium"
+                >
+                  {preview ? 'Change image' : 'Choose photo'}
+                </button>
+                {preview && (
+                  <button
+                    type="button"
+                    onClick={() => { setPreview(null); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                    className="block text-xs text-muted hover:text-red-500 mt-1 transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+                <p className="text-xs text-muted mt-2">JPG, PNG, or WebP · max 5 MB</p>
+              </div>
+            </div>
           </div>
 
           <button
