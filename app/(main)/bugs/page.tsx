@@ -31,7 +31,7 @@ export default async function BugsPage() {
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-brown">Bug Reports</h1>
+          <h1 className="text-2xl font-bold text-brown">Report a Bug to Ricky</h1>
           <p className="text-sm text-muted mt-0.5">
             {open.length} open · {fixed.length} fixed
           </p>

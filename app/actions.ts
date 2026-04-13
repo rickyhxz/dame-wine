@@ -217,11 +217,16 @@ export async function createEventAction(
 }
 
 export async function claimBottleSlotAction(
-  slotId: number,
-  wineName: string
+  _prevState: { error: string } | null,
+  formData: FormData
 ): Promise<{ error: string } | null> {
   const session = await getSession()
   if (!session) redirect('/login')
+
+  const slotId = parseInt(formData.get('slotId') as string)
+  const wineName = ((formData.get('wineName') as string) ?? '').trim()
+
+  if (!slotId) return { error: 'Invalid slot' }
 
   const slot = await db.eventBottleSlot.findUnique({ where: { id: slotId } })
   if (!slot) return { error: 'Slot not found' }
@@ -231,16 +236,23 @@ export async function claimBottleSlotAction(
 
   await db.eventBottleSlot.update({
     where: { id: slotId },
-    data: { signedUpBy: session.userId, wineName: wineName.trim() || null },
+    data: { signedUpBy: session.userId, wineName: wineName || null },
   })
 
   revalidatePath(`/events/${slot.eventId}`)
   return null
 }
 
-export async function unclaimBottleSlotAction(slotId: number): Promise<{ error: string } | null> {
+export async function unclaimBottleSlotAction(
+  _prevState: { error: string } | null,
+  formData: FormData
+): Promise<{ error: string } | null> {
   const session = await getSession()
   if (!session) redirect('/login')
+
+  const slotId = parseInt(formData.get('slotId') as string)
+
+  if (!slotId) return { error: 'Invalid slot' }
 
   const slot = await db.eventBottleSlot.findUnique({ where: { id: slotId } })
   if (!slot) return { error: 'Slot not found' }

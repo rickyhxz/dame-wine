@@ -3,6 +3,20 @@ import { db } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { WorldMap } from '@/components/WorldMap'
 
+function relativeTime(date: Date): string {
+  const diff = Date.now() - date.getTime()
+  const minutes = Math.floor(diff / 60_000)
+  const hours = Math.floor(diff / 3_600_000)
+  const days = Math.floor(diff / 86_400_000)
+  const weeks = Math.floor(days / 7)
+  if (minutes < 2) return 'just now'
+  if (minutes < 60) return `${minutes} minutes ago`
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`
+  if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`
+  if (weeks < 5) return `${weeks} week${weeks !== 1 ? 's' : ''} ago`
+  return date.toLocaleDateString()
+}
+
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="bg-card rounded-xl border border-border p-5 text-center">
@@ -41,6 +55,19 @@ export default async function HomePage() {
     where: { userId: session!.userId, status: 'WISHLIST' },
   })
 
+  const friendTastings = await db.tasting.findMany({
+    where: { status: 'TASTED', userId: { not: session!.userId } },
+    include: { user: true, wine: true },
+    orderBy: { tastedAt: 'desc' },
+    take: 8,
+  })
+
+  const recentEvents = await db.tastingEvent.findMany({
+    include: { creator: true },
+    orderBy: { createdAt: 'desc' },
+    take: 4,
+  })
+
   // Aggregate stats
   const varietyCounts: Record<string, number> = {}
   const regionCounts: Record<string, number> = {}
@@ -68,6 +95,46 @@ export default async function HomePage() {
     rated.length > 0
       ? (rated.reduce((s, t) => s + t.rating!, 0) / rated.length).toFixed(1)
       : null
+
+  // Build merged friends activity timeline
+  type TastingItem = {
+    type: 'tasting'
+    date: Date
+    userName: string
+    wineName: string
+    rating: number | null
+    comment: string | null
+    wineId: number
+  }
+  type EventItem = {
+    type: 'event'
+    date: Date
+    userName: string
+    eventName: string
+    eventId: number
+  }
+  type ActivityItem = TastingItem | EventItem
+
+  const activityItems: ActivityItem[] = [
+    ...friendTastings.map((t): TastingItem => ({
+      type: 'tasting',
+      date: t.tastedAt ?? t.createdAt,
+      userName: t.user.name,
+      wineName: t.wine.name,
+      rating: t.rating,
+      comment: t.comment,
+      wineId: t.wine.id,
+    })),
+    ...recentEvents.map((e): EventItem => ({
+      type: 'event',
+      date: e.createdAt,
+      userName: e.creator.name,
+      eventName: e.name,
+      eventId: e.id,
+    })),
+  ]
+  activityItems.sort((a, b) => b.date.getTime() - a.date.getTime())
+  const feedItems = activityItems.slice(0, 10)
 
   const TYPE_LABELS: Record<string, string> = {
     RED: 'Red', WHITE: 'White', ROSE: 'Rosé',
@@ -216,6 +283,61 @@ export default async function HomePage() {
           )}
         </div>
       )}
+
+      {/* Friends Activity Feed */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
+          Friends Activity
+        </h2>
+        {feedItems.length === 0 ? (
+          <div className="bg-card rounded-xl border border-border p-8 text-center text-muted text-sm">
+            No friends activity yet — invite your crew to start tasting!
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {feedItems.map((item, i) => (
+              <div
+                key={`${item.type}-${i}`}
+                className="bg-card rounded-xl border border-border px-4 py-3 flex items-start gap-3"
+              >
+                <div className="w-7 h-7 rounded-full bg-wine/10 text-wine text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
+                  {item.userName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0 text-sm text-brown leading-relaxed">
+                  {item.type === 'tasting' ? (
+                    <>
+                      <span className="font-semibold">{item.userName}</span>
+                      {' tasted '}
+                      <Link href={`/wines/${item.wineId}`} className="font-semibold hover:text-wine transition-colors">
+                        {item.wineName}
+                      </Link>
+                      {item.rating !== null && (
+                        <span className="text-gold ml-1">{'★'.repeat(item.rating)}</span>
+                      )}
+                      {item.comment && (
+                        <span className="text-muted italic ml-1">· &ldquo;{item.comment}&rdquo;</span>
+                      )}
+                      <span className="text-xs text-muted ml-2">{relativeTime(item.date)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold">{item.userName}</span>
+                      {' created event '}
+                      <Link href={`/events/${item.eventId}`} className="font-semibold hover:text-wine transition-colors">
+                        {item.eventName}
+                      </Link>
+                      <span className="text-xs text-muted ml-2">{relativeTime(item.date)}</span>
+                      <Link href={`/events/${item.eventId}`} className="text-wine ml-1 hover:underline text-xs">
+                        →
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

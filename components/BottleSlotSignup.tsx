@@ -15,16 +15,11 @@ interface Props {
 }
 
 function ClaimForm({ slotId }: { slotId: number }) {
-  const [state, action, pending] = useActionState(
-    async (_prev: { error: string } | null, formData: FormData) => {
-      const wineName = (formData.get('wineName') as string) ?? ''
-      return claimBottleSlotAction(slotId, wineName)
-    },
-    null
-  )
+  const [state, action, pending] = useActionState(claimBottleSlotAction, null)
 
   return (
     <form action={action} className="flex gap-2 mt-2">
+      <input type="hidden" name="slotId" value={slotId} />
       <input
         name="wineName"
         type="text"
@@ -46,16 +41,11 @@ function ClaimForm({ slotId }: { slotId: number }) {
 }
 
 function UnclaimForm({ slotId }: { slotId: number }) {
-  const [, action, pending] = useActionState(
-    async (_prev: null, _formData: FormData) => {
-      await unclaimBottleSlotAction(slotId)
-      return null
-    },
-    null
-  )
+  const [, action, pending] = useActionState(unclaimBottleSlotAction, null)
 
   return (
     <form action={action} className="mt-1">
+      <input type="hidden" name="slotId" value={slotId} />
       <button
         type="submit"
         disabled={pending}
