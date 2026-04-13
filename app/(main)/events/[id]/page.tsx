@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { TastingActions } from '@/components/TastingActions'
 import { BottleSlotSignup } from '@/components/BottleSlotSignup'
-import { deleteEventAction } from '@/app/actions'
+import { DeleteEventButton } from '@/components/DeleteEventButton'
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -82,19 +82,7 @@ export default async function EventDetailPage({ params }: PageProps) {
               <p className="text-sm text-muted mt-0.5">📍 {event.location}</p>
             )}
           </div>
-          {isCreator && (
-            <form action={deleteEventAction.bind(null, event.id)}>
-              <button
-                type="submit"
-                className="text-xs text-muted hover:text-red-600 transition-colors"
-                onClick={(e) => {
-                  if (!confirm('Delete this event?')) e.preventDefault()
-                }}
-              >
-                Delete
-              </button>
-            </form>
-          )}
+          {isCreator && <DeleteEventButton eventId={event.id} />}
         </div>
 
         {/* Theme / variable */}
